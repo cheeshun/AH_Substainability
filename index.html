@@ -1,0 +1,1818 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Healthcare Sustainability Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .decision-card {
+      transition: all 0.3s ease;
+    }
+    .decision-card:hover {
+      transform: translateY(-4px);
+    }
+    .decision-card.selected {
+      border-color: #10b981;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    }
+    .decision-card.used {
+      opacity: 0.5;
+      pointer-events: none;
+      background: #1e293b;
+    }
+    .description-text {
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin-top: 0.75rem;
+    }
+    .description-toggle {
+      font-size: 0.75rem;
+      color: #10b981;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      display: inline-block;
+    }
+    .description-toggle:hover {
+      color: #34d399;
+    }
+    .metric-card {
+      backdrop-filter: blur(10px);
+    }
+    .category-header {
+      position: relative;
+    }
+    .category-header::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 40px;
+      height: 3px;
+      background: currentColor;
+      border-radius: 2px;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white overflow-auto">
+  <div id="app-wrapper" class="w-full min-h-full p-6"><!-- Welcome Screen -->
+   <div id="welcome-screen" class="max-w-4xl mx-auto">
+    <div class="bg-slate-800/60 rounded-3xl p-12 border border-slate-700 shadow-2xl">
+     <div class="text-center mb-8">
+      <h1 class="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent mb-4">Welcome to The Premier Online Simulator!</h1>
+      <h2 class="text-xl font-semibold text-emerald-300 mb-6">This simulator aims to deepen your understanding of net-zero interventions in hospital environments.</h2>
+     </div>
+     <div class="text-slate-200 space-y-4 text-lg leading-relaxed mb-8">
+      <p>Over the past decade, the world has experienced its 10 hottest years on record, and healthcare emissions account for 7% of Singapore's total emissions. Under the Singapore Green Plan, the nation is committed to achieving net zero by 2050—and hospitals play a critical role in this transformation.</p>
+      <p>In this simulation, you will manage a hospital with 500 beds. Your objective is to reduce the hospital's greenhouse gas (GHG) emissions by 40% over a period of 7 years, as part of a longer-term goal to reach net zero emissions by 2050. Each year, you will choose from a set of interventions that you believe will best accomplish this goal, while also optimizing the hospital's financial performance and electrical usage.</p>
+      <p>Successfully achieving Net Zero will not be easy! Hospital-based care is currently very carbon-intensive, and decarbonization will require changes to virtually all aspects of healthcare delivery and operations. There are also limits to how much change an organization can successfully manage at once. To model this constraint, you will only be able to pursue a maximum of three initiatives each year.</p>
+      <p class="text-emerald-300 font-medium">When you are ready to begin the simulation, press Start.</p>
+     </div>
+     <div class="text-center"><button onclick="startGame()" class="px-12 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl font-semibold text-white text-xl shadow-lg shadow-emerald-500/25 transition-all"> Start Simulation </button>
+     </div>
+    </div>
+   </div><!-- Header -->
+   <header id="game-header" class="text-center mb-8 hidden">
+    <h1 id="game-title" class="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent mb-2">Healthcare Sustainability Challenge</h1>
+    <p id="round-label" class="text-emerald-300/70 text-lg"><span id="year-display">Year 1</span> of 7 - Make Your Decisions</p>
+   </header><!-- Metrics Display -->
+   <div id="metrics-display" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-5xl mx-auto hidden">
+    <div class="metric-card bg-slate-800/60 rounded-2xl p-5 border border-slate-700 relative">
+     <div class="absolute top-4 right-4"><span id="cost-total-change" class="text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400">0%</span>
+     </div>
+     <div class="flex items-center gap-3 mb-2">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center"><span class="text-xl">💵</span>
+      </div><span class="text-slate-400 text-sm font-medium">Operating Costs</span>
+     </div>
+     <p id="cost-value" class="text-2xl font-bold text-amber-400">S$100.00M</p>
+     <p id="cost-change" class="text-xs text-slate-500 mt-1">Starting value</p>
+    </div>
+    <div class="metric-card bg-slate-800/60 rounded-2xl p-5 border border-slate-700 relative">
+     <div class="absolute top-4 right-4"><span id="carbon-total-change" class="text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400">0%</span>
+     </div>
+     <div class="flex items-center gap-3 mb-2">
+      <div class="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center"><span class="text-xl">🌍</span>
+      </div><span class="text-slate-400 text-sm font-medium">Carbon Emissions</span>
+     </div>
+     <p id="carbon-value" class="text-2xl font-bold text-rose-400">30,000 tonnes</p>
+     <p id="carbon-change" class="text-xs text-slate-500 mt-1">Starting value</p>
+    </div>
+    <div class="metric-card bg-slate-800/60 rounded-2xl p-5 border border-slate-700 relative">
+     <div class="absolute top-4 right-4"><span id="electricity-total-change" class="text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400">0%</span>
+     </div>
+     <div class="flex items-center gap-3 mb-2">
+      <div class="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center"><span class="text-xl">⚡</span>
+      </div><span class="text-slate-400 text-sm font-medium">Electricity Use</span>
+     </div>
+     <p id="electricity-value" class="text-2xl font-bold text-sky-400">40.00M kWh</p>
+     <p id="electricity-change" class="text-xs text-slate-500 mt-1">Starting value</p>
+    </div>
+   </div><!-- End Game Screen -->
+   <div id="endgame-screen" class="max-w-4xl mx-auto hidden">
+    <div class="bg-slate-800/60 rounded-3xl p-12 border border-slate-700 shadow-2xl">
+     <div class="text-center mb-8">
+      <div id="endgame-icon" class="text-8xl mb-4"></div>
+      <h1 id="endgame-title" class="text-5xl font-bold mb-4"></h1>
+      <p id="endgame-message" class="text-xl text-slate-300 mb-8"></p>
+     </div><!-- Final Metrics Summary -->
+     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-slate-700/50 rounded-2xl p-6 border border-slate-600">
+       <div class="text-center">
+        <div class="text-amber-400 text-sm font-medium mb-2">
+         Operating Costs
+        </div>
+        <div id="final-cost-value" class="text-2xl font-bold text-white mb-2"></div>
+        <div id="final-cost-change" class="text-sm"></div>
+       </div>
+      </div>
+      <div class="bg-slate-700/50 rounded-2xl p-6 border border-slate-600">
+       <div class="text-center">
+        <div class="text-rose-400 text-sm font-medium mb-2">
+         Carbon Emissions
+        </div>
+        <div id="final-carbon-value" class="text-2xl font-bold text-white mb-2"></div>
+        <div id="final-carbon-change" class="text-sm"></div>
+       </div>
+      </div>
+      <div class="bg-slate-700/50 rounded-2xl p-6 border border-slate-600">
+       <div class="text-center">
+        <div class="text-sky-400 text-sm font-medium mb-2">
+         Electricity Use
+        </div>
+        <div id="final-electricity-value" class="text-2xl font-bold text-white mb-2"></div>
+        <div id="final-electricity-change" class="text-sm"></div>
+       </div>
+      </div>
+      <div class="bg-slate-700/50 rounded-2xl p-6 border border-slate-600">
+       <div class="text-center">
+        <div class="text-purple-400 text-sm font-medium mb-2">
+         Patient Satisfaction
+        </div>
+        <div id="final-satisfaction-value" class="text-2xl font-bold text-white mb-2"></div>
+        <div id="final-satisfaction-change" class="text-sm"></div>
+       </div>
+      </div>
+     </div><!-- View Results Button -->
+     <div class="text-center mb-6"><button onclick="showFinalResults()" class="px-12 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl font-semibold text-white text-xl shadow-lg shadow-emerald-500/25 transition-all"> View Year 7 Results </button>
+     </div>
+     <div class="text-center"><button onclick="resetGame()" class="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold text-white transition-all"> 🔁 Start New Simulation </button>
+     </div>
+    </div>
+   </div><!-- Game Content -->
+   <div id="game-content" class="max-w-6xl mx-auto hidden"><!-- Decision Phase -->
+    <div id="decision-phase"><!-- Initiative History -->
+     <div id="history-container" class="bg-slate-800/40 rounded-2xl p-5 border border-slate-700/50 mb-6 hidden">
+      <h3 class="text-emerald-400 font-semibold mb-3 flex items-center gap-2 cursor-pointer" onclick="toggleHistory()"><span id="history-arrow">▼</span> <span>📋</span> <span>Previously Chosen Initiatives</span> <span class="text-xs text-slate-500 ml-2">(click to toggle)</span></h3>
+      <div id="history-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+     </div>
+     <div class="text-center mb-6">
+      <p class="text-emerald-300/80 mb-4">Select up to 3 sustainability initiatives for your healthcare facility</p>
+      <p id="selection-count" class="text-sm text-slate-400">0 of 3 initiatives selected</p>
+     </div><!-- Categories Grid -->
+     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"><!-- Leadership & Governance -->
+      <div class="bg-slate-800/40 rounded-2xl p-5 border border-slate-700/50">
+       <h3 class="category-header text-emerald-400 font-semibold mb-4 pb-2">🎯 Leadership &amp; Governance</h3>
+       <div class="space-y-3" id="leadership-decisions"></div>
+      </div><!-- Clinical Practices -->
+      <div class="bg-slate-800/40 rounded-2xl p-5 border border-slate-700/50">
+       <h3 class="category-header text-sky-400 font-semibold mb-4 pb-2">⚕️ Clinical Practices</h3>
+       <div class="space-y-3" id="clinical-decisions"></div>
+      </div><!-- Operations -->
+      <div class="bg-slate-800/40 rounded-2xl p-5 border border-slate-700/50">
+       <h3 class="category-header text-amber-400 font-semibold mb-4 pb-2">⚙️ Operations</h3>
+       <div class="space-y-3" id="operations-decisions"></div>
+      </div><!-- Supply Chain -->
+      <div class="bg-slate-800/40 rounded-2xl p-5 border border-slate-700/50">
+       <h3 class="category-header text-rose-400 font-semibold mb-4 pb-2">📦 Supply Chain</h3>
+       <div class="space-y-3" id="supply-decisions"></div>
+      </div>
+     </div>
+     <div class="text-center"><button id="confirm-btn" onclick="confirmDecisions()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"> Confirm Decisions &amp; See Results </button>
+     </div>
+    </div><!-- Results Phase -->
+    <div id="results-phase" class="hidden">
+     <div class="text-center mb-6">
+      <h2 class="text-2xl font-bold text-emerald-400 mb-2">📈 Year <span id="results-year">1</span> Results</h2>
+      <p class="text-slate-400">Impact of your sustainability initiatives</p>
+     </div><!-- Charts -->
+     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700">
+       <h4 class="text-amber-400 font-medium mb-4 text-center">Operating Costs (S$M)</h4>
+       <div class="h-48">
+        <canvas id="cost-chart"></canvas>
+       </div>
+      </div>
+      <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700">
+       <h4 class="text-rose-400 font-medium mb-4 text-center">Carbon Emissions (tonnes)</h4>
+       <div class="h-48">
+        <canvas id="carbon-chart"></canvas>
+       </div>
+      </div>
+      <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700">
+       <h4 class="text-sky-400 font-medium mb-4 text-center">Electricity Use (M kWh)</h4>
+       <div class="h-48">
+        <canvas id="electricity-chart"></canvas>
+       </div>
+      </div>
+      <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700">
+       <h4 class="text-purple-400 font-medium mb-4 text-center">Patient Satisfaction</h4>
+       <div class="h-48">
+        <canvas id="satisfaction-chart"></canvas>
+       </div>
+      </div>
+     </div><!-- Selected Initiatives Summary -->
+     <div class="bg-slate-800/40 rounded-2xl p-6 border border-slate-700/50 mb-6">
+      <h3 class="text-emerald-400 font-semibold mb-4 flex items-center gap-2"><span>✅</span> <span>Selected Initiatives</span></h3>
+      <div id="selected-summary" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+     </div><!-- Feedback Section -->
+     <div class="bg-slate-800/40 rounded-2xl p-6 border border-slate-700/50 mb-6">
+      <h3 class="text-sky-400 font-semibold mb-4 flex items-center gap-2"><span>💬</span> <span>Initiative Feedback</span></h3>
+      <div id="feedback-summary" class="space-y-3"></div>
+     </div>
+     <div class="text-center"><button id="next-year-btn" onclick="nextYear()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all mr-4"> <span id="next-year-text">Continue to Year 2 →</span> </button> <button onclick="resetGame()" class="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold text-white transition-all"> 🔁 Start Over </button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Initial metrics
+    const initialMetrics = {
+      cost: 100000000,
+      carbon: 30000,
+      electricity: 40000000,
+      patientSatisfaction: 80
+    };
+
+    // Game state
+    let currentYear = 1;
+    let metrics = { ...initialMetrics };
+    let yearStartMetrics = { ...initialMetrics };
+    let selectedDecisions = new Set();
+    let usedDecisions = new Set();
+    let charts = {};
+    let metricsHistory = [{ ...initialMetrics }];
+    let medicalDevicesYearChosen = null;
+    let initiativeHistory = []; // Track which initiatives were chosen each year
+    let historyExpanded = true; // Track history panel state
+
+    // Start game function
+    function startGame() {
+      document.getElementById('welcome-screen').classList.add('hidden');
+      document.getElementById('game-header').classList.remove('hidden');
+      document.getElementById('metrics-display').classList.remove('hidden');
+      document.getElementById('game-content').classList.remove('hidden');
+    }
+
+    // All decisions organized by category and year
+    const allDecisions = {
+      year1: {
+        leadership: [
+          {
+            id: 'cso',
+            name: 'Chief Sustainability Officer',
+            icon: '👔',
+            effects: { cost: 102000, carbon: 0, electricity: 0 },
+            description: 'Hiring an individual as the Chief Sustainability Officer offers long-term benefits. It makes spending on training and communication more effective, helps to reduce emissions from purchasing and raises the visibility of the hospital as a sustainability champion. The annual cost of employing the Sustainability Officer is $102,300.',
+            feedback: 'The Chief Sustainability Officer quickly began having an impact throughout the hospital - particularly through structured sustainability efforts, increased staff engagement and greater effectiveness of expenditure on staff training.'
+          },
+          {
+            id: 'board',
+            name: 'Board Involvement',
+            icon: '📋',
+            effects: { cost: 0, carbon: 0, electricity: 0 },
+            description: 'Sustainability is not yet a standing agenda item at Board meetings and levels of understanding and commitment vary widely among Board members. Strong Board commitment to sustainability sets an example for the organization and can improve the effectiveness of other behaviour change efforts, particularly training. This initiative will increase Board involvement by: Hosting an education session at the next Board retreat. Establishing a Board subcommittee to monitor progress on implementing sustainability plans. Incorporating sustainability competencies into the Board selection process going forward.',
+            feedback: 'Senior level commitment to the hospital\'s sustainability efforts through increased Board involvement is increasing staff engagement and the hospital\'s reputation. Several initiatives are more successful as a result of the Board\'s commitment, including expenditure on staff training.'
+          }
+        ],
+        clinical: [
+          {
+            id: 'inhalers',
+            name: 'Prescribe Low Emission Inhalers',
+            icon: '💨',
+            effects: { cost: 0, carbon: -160, electricity: 0 },
+            description: 'This intervention encourages and incentivizes clinicians to prescribe low-carbon inhalers (dry powder inhalers) rather than pressurized metered-dose inhalers, when it is safe to do so. Dry powder inhalers emit only 4% of the amount emitted by traditional inhalers, but they may not be clinically appropriate in all cases. There is no cost difference between the two types of inhalers.',
+            feedback: 'The introduction of the new low emission (dry powder) inhalers is reducing emissions from inhalers by 50%, with no negative impact on staff or patients.'
+          },
+          {
+            id: 'prescription',
+            name: 'Low Carbon Prescription Practices',
+            icon: '💊',
+            effects: { cost: -1500000, carbon: -820, electricity: 0 },
+            description: 'Pharmaceuticals and chemicals account for a significant part of hospital emissions. Lowering of carbon emissions through medication practices can be encouraged by: Reducing over-prescriptions and drug dependency through regular follow ups with patients and their caregivers. Prescribing social and lifestyle changes as alternatives to medicines. Reducing pharmaceutical waste through buyback programmes from vendors, reduced prescriptions and preferring lower-carbon medicine packaging options. This initiative involves annual expenditure of $93,000 on staff training to ensure that the proposed practices are implemented in a safe manner.',
+            feedback: 'The new prescription practices are helping to reduce the number of prescriptions. The quantity of emissions from prescriptions per finished admissions episode (FAE) has fallen by 30% and medication costs have fallen. Most importantly, the change has not had any negative effects on clinical care quality, patient experience, or employee engagement.'
+          }
+        ],
+        operations: [
+          {
+            id: 'renewable',
+            name: 'On-Site Renewable Energy',
+            icon: '☀️',
+            effects: { cost: -10000, carbon: 0, electricity: -110000 },
+            description: 'The hospital does not have a lot of roof space, but it is possible to install solar panels. Using the latest technology, it can accommodate solar panels generating 110,000 kWh per year. The production and installation of solar panels involves 50,000 kg of CO2 emissions that are counted in Scope 3 for this year only. The project requires an investment of $111,600, which is depreciated over 20 years at $5,580 per year. There is also an annual maintenance cost of $9,300.',
+            feedback: 'Now that you have installed the solar panels, electricity consumption from the grid has decreased. However, for this year, emissions from purchasing (Scope 3) have increased due to the embodied carbon of the solar panels. From next year onwards, the embodied carbon will no longer be counted in Scope 3 emissions.'
+          },
+          {
+            id: 'led',
+            name: 'LED Lighting',
+            icon: '💡',
+            effects: { cost: -500000, carbon: -900, electricity: -2300000 },
+            description: 'Most of the lights in the hospital are still traditional (incandescent). Replacing all remaining traditional lights with LEDs will save over 60% of the hospital\'s electricity use from lighting. The LED lights are installed when the existing lights need replacing, so there are no additional emissions or costs from purchases.',
+            feedback: 'The new LED lights have reduced electricity consumption from lighting by over 60%. Although occasionally people comment that the lights are brighter than they would like, most comments indicate they prefer the new lighting.'
+          },
+          {
+            id: 'fleet',
+            name: 'Low Carbon Fleet',
+            icon: '🚗',
+            effects: { cost: -35000, carbon: -40, electricity: 65000 },
+            description: 'The hospital uses 5 ambulances that together consume 50,000 litres (13,209 gallons) of fuel per year. Replacing them with electric ambulances will cost an additional $27,900 per year in depreciation. These new ambulances are expected to consume 64,000 kWh of electricity from the grid per year.',
+            feedback: 'The low-emissions vehicles have a lot of embodied carbon when they are purchased, so their impact on lowering CO2 emissions will be felt later.'
+          },
+          {
+            id: 'climate',
+            name: 'Climate Control System',
+            icon: '❄️',
+            effects: { cost: -660000, carbon: -1200, electricity: -3000000 },
+            description: 'A smart climate control system enables centralized control of the temperature throughout the hospital. With the new system, the operating rooms and cleanrooms temperature ranges between 20°C and 23°C (68° and 73.4°F) and the other patient and work areas temperature is set at 24°C (75.2°F). Avoiding temperatures outside these ranges will help save energy consumption from HVAC by an estimated 10%. A vendor can install and maintain the system for a cost of $13,950 per year.',
+            feedback: 'The climate control system is ensuring that temperatures are set appropriately at all times. The system is resulting in a reduction of electricity consumption from HVAC by around 15%.'
+          },
+          {
+            id: 'microgrid',
+            name: 'Backup Microgrid',
+            icon: '🔋',
+            effects: { cost: 25000, carbon: 0, electricity: 0 },
+            description: 'The hospital\'s back-up electricity supply still relies on energy from fossil fuels. A new solar-powered microgrid with local energy storage will cost $372,000. It is depreciated over 20 years at $18,600 per year, has an annual maintenance cost of $4,650 and contains 25,000 kg CO2e of embodied carbon. This grid has the potential to power the hospital for 14 days in the event of an emergency.',
+            feedback: 'The backup microgrid has resulted in a one-off increase in emissions from purchasing. The microgrid will only be used when there is a power outage, which may happen as a result of blackouts, floods or other unexpected climate events.'
+          }
+        ],
+        supply: [
+          {
+            id: 'procurement',
+            name: 'Low-Carbon Procurement',
+            icon: '🌿',
+            effects: { cost: 0, carbon: -3400, electricity: 0 },
+            description: 'Supply chain emissions can be reduced by prioritizing procurement suppliers who have carbon reduction plans and publish data on the carbon footprint of their products. For example, the hospital would choose the product with the lower carbon emissions when two or more options for equivalent products are available. This initiative extends to all procurement, including food, medical devices, and other equipment. For items where data is available, emissions from procurement could potentially be cut by 10–20%, without increasing cost.',
+            feedback: 'Selecting suppliers based on their sustainability characteristics is leading to a 20% reduction in purchasing-related emissions, without significantly impacting costs. Although it is difficult to find low-emission products in some categories, availability has been steadily improving.'
+          },
+          {
+            id: 'plastic',
+            name: 'Single-Use Plastic Reduction Programme',
+            icon: '🚫',
+            effects: { cost: -47000, carbon: -170, electricity: 0 },
+            description: 'This intervention involves a single-use plastic reduction programme, which includes regular audits of: Use of single-use plastic items within offices and hospital wards. Use of clinical single-use plastics. Reduction opportunities can be identified and implemented, thereby leading to reductions in emissions and costs from purchasing and waste.',
+            feedback: 'Limiting single-use plastics is helping to reduce operational costs and waste-related emissions. Although the changes have required some behavioural shifts, there have been very few complaints and no negative impact on staff engagement.'
+          }
+        ]
+      },
+      year2: {
+        leadership: [
+          {
+            id: 'green_financing',
+            name: 'Green Financing Mechanism',
+            icon: '💚',
+            effects: { cost: -170000, carbon: 0, electricity: 0 },
+            description: 'This intervention sets aside funds specifically for sustainability projects. A portion of realized savings from these projects (e.g., through lower electric or heating bills) will flow back to replenish the fund.',
+            feedback: 'The Green Financing Mechanism was a success, but not for the reasons originally expected. It didn\'t contribute directly to hospital emission reductions, but it has had a positive effect on employee awareness and engagement. It is possible that the green financing mechanism will enable new projects in the future.'
+          },
+          {
+            id: 'climate_planning',
+            name: 'Planning for Disruptive Climate Events',
+            icon: '🌪️',
+            effects: { cost: 100000, carbon: 0, electricity: 0 },
+            description: 'The Board has decided to do a risk assessment of disruptive climate events in your city, which have been increasing, and how such events might impact the hospital\'s ability to function. Implementing the plan involves actions such as relocating IT and electricity boards from the basement to upper floors to prevent flood damage, maximizing water reserves for times of drought, and having sufficient access to emergency supplies to maintain essential hospital functions during disruptions.',
+            feedback: 'The disruptive climate event preparations are complete and help to increase the hospital\'s level of resilience.'
+          }
+        ],
+        clinical: [
+          {
+            id: 'reusable_attire',
+            name: 'Reusable Clinical Attire',
+            icon: '🥼',
+            effects: { cost: 0, carbon: -230, electricity: 0 },
+            description: 'Your hospital recognizes the impact of the waste generated through single-use items. This intervention engages the staff to rethink the use of single use attire (i.e. gloves, plastic gowns), saying \'no\' when appropriate, and transitioning to reusable clinical attire.',
+            feedback: 'Emissions from waste and purchasing have gone down as a result of transitioning to reusable clinical attire. The cost impact is neutral, with slightly higher unit prices compensated for by a longer lifespan.'
+          },
+          {
+            id: 'anesthetic',
+            name: 'Implement Low Emission Anesthetic Practices',
+            icon: '😷',
+            effects: { cost: 0, carbon: -360, electricity: 0 },
+            description: 'Anesthetic gases, particularly desflurane, emit greenhouse gases that have a much higher global warming potential than CO2. It is possible to reduce the emissions associated with anesthetic practices by 20–30% through: Switching from desflurane to anesthetic gases with lower emissions. Reducing anesthetic flow rates (within medical safety guidelines).',
+            feedback: 'The new anesthetic practices are resulting in an emissions reduction of 30% per intervention. The improvement is the result of both a reduction in use of desflurane and a reduced flow rate. There have been no reported incidents or negative impacts for staff or patients as a result of this change.'
+          }
+        ],
+        operations: [
+          {
+            id: 'insulation',
+            name: 'Improve Insulation',
+            icon: '🏠',
+            effects: { cost: -130000, carbon: -380, electricity: -1000000 },
+            description: 'Leaks have been discovered in some of the hospital\'s ventilation systems, pipes, and ductwork. These issues can be addressed by: Repairing and maintaining the ventilation systems and boilers. Insulating pipes and ductwork. These actions will incur a one-off cost of $93,000 and are expected to reduce annual energy consumption of HVAC by 1,000,000 kWh.',
+            feedback: 'The insulation project has decreased leakages and helped to reduce HVAC-related energy consumption by 1,000,000 kWh, which is also providing some cost savings.'
+          },
+          {
+            id: 'green_spaces',
+            name: 'Optimise Green Spaces Around the Hospital',
+            icon: '🌱',
+            effects: { cost: 28000, carbon: 0, electricity: 0 },
+            description: 'The space that surrounds the hospital can be made greener through increased vegetation at a cost of $27,900 per year. Although additional green spaces may result in a small amount of carbon capture, this impact may be difficult to measure and too small to be counted towards the hospital\'s \'net\' emissions. The main benefit of the green spaces will be in improved staff engagement and patient satisfaction.',
+            feedback: 'The new green spaces are improving air quality and making the hospital grounds more appealing, resulting in improvements in staff engagement, patient satisfaction, and hospital rating. Although vegetation can help to capture carbon from the air, the green spaces around the hospital are not large enough to result in a measurable and significant reduction in the hospital\'s net emissions.'
+          },
+          {
+            id: 'water',
+            name: 'Efficient Use of Water',
+            icon: '🚰',
+            effects: { cost: 0, carbon: -220, electricity: 0 },
+            description: 'A water saving initiative is estimated to be able to reduce water consumption by 15%. It will: Repair leaks. Install controlled water flow rate taps and shower heads. Use pre-programmed water temperatures and run times. Install water efficient toilets. Install rainwater harvesting. Saving water also leads to a reduction in electricity consumption from water heating.',
+            feedback: 'The water saving initiative is cutting water consumption by 20%. Although water conservation is itself important, the direct impact on emissions depends on the location of the hospital, with freshwater supply being more carbon intensive in some locations than others.'
+          }
+        ],
+        supply: [
+          {
+            id: 'medical_devices',
+            name: 'Medical Devices Reprocessing and Upcycling',
+            icon: '🔄',
+            effects: { cost: -47000, carbon: -1000, electricity: 0 },
+            description: 'An external service can take responsibility for medical device reprocessing (MDR). For a cost of $93,000 per year, the company collects single-use medical devices then disassembles, decontaminates, refurbishes, and reassembles them to provide a longer life cycle for products.',
+            feedback: 'The reprocessing of medical devices is reducing emissions related to medical instruments and electronic waste. It is also helping to reduce costs by $46,500 per year. Most importantly, there haven\'t been any reported cases of unfavourable impacts on care quality.'
+          }
+        ]
+      },
+      year3: {
+        leadership: [
+          {
+            id: 'public_commitment',
+            name: 'Public Commitment',
+            icon: '📢',
+            effects: { cost: -350000, carbon: -630, electricity: -1500000 },
+            description: 'The hospital\'s public commitment to emissions reduction can be communicated through: A public statement about the hospital\'s commitment to reducing emissions. The publication of an annual sustainability report. The public commitment to sustainability can encourage staff to take actions that will reduce emissions.',
+            feedback: 'The hospital\'s public commitment to reducing emissions has improved the hospital\'s rating and increased Board and staff engagement. It is also impacting the behaviour of staff.'
+          }
+        ],
+        clinical: [
+          {
+            id: 'reduce_inpatient_stays',
+            name: 'Reduce Avoidable Days for Inpatient Stays',
+            icon: '🛏️',
+            effects: { cost: 0, carbon: -210, electricity: 0 },
+            description: 'Some patients stay overnight when this is not required. Inpatient days can be reduced through the encouragement of same-day surgeries (when clinically appropriate), and adoption of more minimally invasive surgical techniques. This can increase the hospital\'s capacity, meaning it can treat more patients without an equivalent increase in emissions.',
+            feedback: 'Reducing avoidable days for inpatient stays is not reducing the absolute amount of emissions, but it is enabling an increase in finished admissions episodes (FAE) of 10% per year. This is helping to improve efficiency and to reduce the carbon intensity (CO2e per FAE) of the hospital.'
+          },
+          {
+            id: 'reduce_diagnostic_tests',
+            name: 'Reduce Unnecessary Diagnostic Tests',
+            icon: '🔬',
+            effects: { cost: -75000, carbon: -100, electricity: 0 },
+            description: 'Your hospital has done a review of diagnostic tests (bloods, x-rays, etc.) ordered in the last year and observed that many tests were ordered as part of standard operating procedure when they weren\'t always clinically necessary. Updated clinical protocols ensure that standard baseline tests are adjusted to a clinically relevant minimum, and certain tests require senior doctor approval.',
+            feedback: 'The new procedure for diagnostic tests has been successful. It has required an investment in staff training but has saved expenditure on tests, reduced waste and emissions from purchasing.'
+          }
+        ],
+        operations: [
+          {
+            id: 'light_sensors',
+            name: 'Install Light Sensors',
+            icon: '💡',
+            effects: { cost: -50000, carbon: -100, electricity: -350000 },
+            description: 'Installing light sensors in the common areas and corridors will ensure that lights are only on when there are people in the area. There is a one-off cost of $27,900 to install the sensors throughout the hospital.',
+            feedback: 'The lighting sensors are helping to reduce energy consumption from lighting in corridors, hallways, and staircases by 60%, without any impact on staff or patients. Most staff and patients adjusted quickly to the new system, and there was no measurable negative impact on patient or staff experience.'
+          },
+          {
+            id: 'hazardous_waste',
+            name: 'Hazardous Waste Segregation',
+            icon: '⚠️',
+            effects: { cost: 23000, carbon: -180, electricity: 0 },
+            description: 'Training staff on the importance of waste segregation and to strictly segregate the types of waste can reduce the amounts of waste that is treated as hazardous waste. This can reduce hazardous and electronic waste by at least 10%. It is advantageous because hazardous waste is carbon intensive and expensive to dispose of correctly. The training programme will incur a one-time cost of $23,250.',
+            feedback: 'Improvements in hazardous waste segregation result in the reduction of emissions related to the main waste streams (general, medical, and electronic waste). The quantity of waste is reduced, and in turn the recycling rates are increased.'
+          }
+        ],
+        supply: [
+          {
+            id: 'low_emissions_food',
+            name: 'Low Emissions Food Programme',
+            icon: '🥬',
+            effects: { cost: 140000, carbon: -1150, electricity: 0 },
+            description: 'Food is a significant contributor to climate change. In particular, meat production results in methane emissions. Methane is a greenhouse gas with significant global warming potential. Food-related emissions can be reduced by an estimated 20% through the promotion of: Locally sourced, seasonal food. Offering plant-based diets as a default. This initiative will lead to some increased cost from purchasing fresh, local and organic food and a cost saving from buying less meat.',
+            feedback: 'The implementation of sustainable food practices is reducing food-related emissions. Food costs have increased by 5%. Although some food items have become more expensive as a result of buying more fresh, local items, other costs have gone down, mainly due to a reduction in meat purchases.'
+          }
+        ]
+      },
+      year4: {
+        leadership: [
+          {
+            id: 'behaviour_change',
+            name: 'Behaviour-Change Programme',
+            icon: '👥',
+            effects: { cost: -530000, carbon: -830, electricity: -2370000 },
+            description: 'This intervention implements a behaviour-change programme that encourages staff to turn off unused equipment, switch off lights, and close doors and windows between spaces with different temperatures. In the UK, a similar programme ("TLC") has resulted in emission reductions of over 200 tonnes of CO2e per participating hospital.',
+            feedback: 'In line with TLC behaviour change programmes implemented in the United Kingdom, this initiative is having a positive impact on staff and patients, while reducing HVAC and lighting consumption. Due to the actions taken by staff (such as switching off lights and machines when possible), patients are sleeping better at night, benefiting both patients and staff.'
+          },
+          {
+            id: 'green_travel',
+            name: 'Green Travel Plan',
+            icon: '🚲',
+            effects: { cost: 9300, carbon: -650, electricity: 0 },
+            description: 'A significant share of emissions is caused by travel to and from the hospital. Research suggests that emissions from travel could be reduced by 15%. A green travel plan has been designed to encourage the use of public transport, cycling, and walking. This includes the improvement of hospital site bike lanes, bike parking spaces, and a bike repair station. The investment required is $93,000 and is depreciated over 10 years.',
+            feedback: 'The green travel plan is encouraging staff, patients, and visitors to come to the hospital by public transport or by bike. The initiative is helping to cut travel emissions by around 15%. Patients and staff are responding well to the change, with only a small number of complaints from car users.'
+          }
+        ],
+        clinical: [
+          {
+            id: 'telemedicine',
+            name: 'Implement Telemedicine',
+            icon: '💻',
+            effects: { cost: 18600, carbon: -170, electricity: 0 },
+            description: 'Telemedicine appointments result in reductions in travel, admissions, and bed days. In this initiative, the hospital redesigns its digital care pathway to conduct outpatient and primary care appointments remotely where possible. The investment required is $186,000, depreciated over 10 years. Shifting modes of care includes telehealth monitoring and remote diagnostics. These practices can also reduce exposure of patients to hospital environments and possible healthcare-acquired infections.'
+          }
+        ],
+        operations: [
+          {
+            id: 'sustainable_waste',
+            name: 'Sustainable Waste Treatment',
+            icon: '♻️',
+            effects: { cost: 0, carbon: -240, electricity: 0 },
+            description: 'For this intervention, the hospital implements alternatives to incineration where feasible. Instead, waste is disposed of using legislated methods including autoclaving, microwaving, and steam treatment integrated with internal mixing. These alternatives minimize the formation and release of chemicals or hazardous emissions that occur during incineration.'
+          }
+        ],
+        supply: [
+          {
+            id: 'reduce_food_waste',
+            name: 'Reduce Food Waste',
+            icon: '🍽️',
+            effects: { cost: -140000, carbon: -100, electricity: 0 },
+            description: 'Food waste can be reduced through: Rethinking how food is prepared. Meal choices and flexible portion sizes for patients and staff. Donation to food-initiatives (food banks, social outreach teams, community initiatives) for unwanted produce. Contributing to composting initiatives within the hospital and community. Implementation of this initiative can even help to save on food costs.',
+            feedback: 'Reducing food waste is leading to a reduction in emissions from food waste by 20% and is reducing food costs by 5%.'
+          }
+        ]
+      },
+      year5: {
+        leadership: [
+          {
+            id: 'sustainability_rating',
+            name: 'Get Sustainability Rating',
+            icon: '🏆',
+            effects: { cost: 18600, carbon: 0, electricity: 0 },
+            description: 'Management has identified several rating schemes that certify if a hospital is operating in a way that is environmentally sustainable. The proposed rating involves an annual audit from the rating organization and costs $18,600 per year. The rating will not impact emissions directly, but it can help position the hospital as championing environmental sustainability within the communities it serves.',
+            feedback: 'The sustainability rating promotes accountability and has increased the hospital\'s rating slightly and has a small impact on staff and patients. However, there is no direct impact on people\'s behaviour or the hospital\'s emissions as a result of the rating.'
+          }
+        ],
+        clinical: [],
+        operations: [
+          {
+            id: 'upgrade_ac',
+            name: 'Upgrade Air Conditioning (A/C)',
+            icon: '❄️',
+            effects: { cost: -1260000, carbon: -2000, electricity: -500000 },
+            description: 'Replacing the existing air conditioning in all hospital rooms with a modern energy-efficient system is expected to result in a 30% reduction in energy consumption from heating, ventilation and air conditioning (HVAC). The embodied carbon involved with the purchase and installation of the equipment is 15,000 kg CO2e. The project requires an investment of $930,000, which is depreciated by $93,000 per year over 10 years.',
+            feedback: 'The air conditioning upgrade has been successful and is resulting in a high reduction in electricity consumption and CO2 emissions.'
+          }
+        ],
+        supply: [
+          {
+            id: 'eco_cleaning',
+            name: 'Purchase Eco-Friendly Cleaning Materials',
+            icon: '🧽',
+            effects: { cost: 52000, carbon: -50, electricity: 0 },
+            description: 'The hospital spends $46,500 a year on cleaning products. Shifting to eco-friendly cleaning products will increase costs by $9,300. Benefits include less water use, enhanced safety and less environmental damage from chemicals.',
+            feedback: 'The eco-friendly cleaning materials are reducing water consumption by a small amount. Although there are many benefits of using these cleaning products, their impact on emissions is minimal.'
+          }
+        ]
+      },
+      year6: {
+        leadership: [],
+        clinical: [],
+        operations: [],
+        supply: [
+          {
+            id: 'waste_reduction',
+            name: 'Waste Reduction Programme',
+            icon: '🗑️',
+            effects: { cost: -23000, carbon: -238, electricity: 0 },
+            description: 'This intervention includes the reduction of general waste through: Buying products in bulk. Rethinking the necessity of all products. Reducing purchases with excess packaging. Reusing or donating items. Paper and plastics are the largest part of the reducible waste stream of a hospital.',
+            feedback: 'The waste reduction programme is reducing waste related emissions and is also generating some cost savings. Several staff have expressed appreciation about the hospital\'s visible efforts to reduce waste.'
+          }
+        ]
+      },
+      year7: {
+        leadership: [],
+        clinical: [],
+        operations: [],
+        supply: [
+          {
+            id: 'reusable_products',
+            name: 'Reusable Product Initiatives',
+            icon: '♻️',
+            effects: { cost: -46500, carbon: -410, electricity: 0 },
+            description: 'An internal team has identified that emissions from purchasing and waste can be reduced by reusing products, including: Reusing washable gowns, linens, bedsheets and textiles. Avoiding disposable plates or crockery in canteens. Using reusable containers for hazardous waste. Although some staff have doubts about this initiative, experiences in other hospitals have shown that reusing products can be done safely. If implemented successfully, emissions from purchasing and waste could be reduced by 10%.',
+            feedback: 'Promoting reusable products is reducing emissions from waste and purchases and saving purchasing costs. There haven\'t been any reported cases of unfavourable impacts on care quality, or patient satisfaction.'
+          }
+        ]
+      }
+    };
+
+    // Default config
+    const defaultConfig = {
+      game_title: 'Healthcare Sustainability Challenge',
+      round_label: 'Round 1 of 1 - Make Your Decisions',
+      background_color: '#0f172a',
+      accent_color: '#10b981',
+      text_color: '#ffffff',
+      card_color: '#1e293b',
+      font_family: 'Space Grotesk'
+    };
+
+    let config = { ...defaultConfig };
+
+    // Initialize Element SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (newConfig) => {
+          config = { ...defaultConfig, ...newConfig };
+          applyConfig();
+        },
+        mapToCapabilities: (cfg) => ({
+          recolorables: [
+            {
+              get: () => cfg.background_color || defaultConfig.background_color,
+              set: (value) => window.elementSdk.setConfig({ background_color: value })
+            },
+            {
+              get: () => cfg.accent_color || defaultConfig.accent_color,
+              set: (value) => window.elementSdk.setConfig({ accent_color: value })
+            },
+            {
+              get: () => cfg.text_color || defaultConfig.text_color,
+              set: (value) => window.elementSdk.setConfig({ text_color: value })
+            },
+            {
+              get: () => cfg.card_color || defaultConfig.card_color,
+              set: (value) => window.elementSdk.setConfig({ card_color: value })
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => cfg.font_family || defaultConfig.font_family,
+            set: (value) => window.elementSdk.setConfig({ font_family: value })
+          },
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (cfg) => new Map([
+          ['game_title', cfg.game_title || defaultConfig.game_title],
+          ['round_label', cfg.round_label || defaultConfig.round_label]
+        ])
+      });
+    }
+
+    function applyConfig() {
+      document.getElementById('game-title').textContent = config.game_title || defaultConfig.game_title;
+      
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      document.body.style.fontFamily = `${fontFamily}, sans-serif`;
+    }
+
+    function toggleHistory() {
+      historyExpanded = !historyExpanded;
+      const historyList = document.getElementById('history-list');
+      const historyArrow = document.getElementById('history-arrow');
+      
+      if (historyExpanded) {
+        historyList.style.display = 'grid';
+        historyArrow.textContent = '▼';
+      } else {
+        historyList.style.display = 'none';
+        historyArrow.textContent = '▶';
+      }
+    }
+
+    function updateHistoryDisplay() {
+      const historyContainer = document.getElementById('history-container');
+      const historyList = document.getElementById('history-list');
+      
+      if (initiativeHistory.length === 0) {
+        historyContainer.classList.add('hidden');
+        return;
+      }
+      
+      historyContainer.classList.remove('hidden');
+      historyList.innerHTML = '';
+      
+      initiativeHistory.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'bg-slate-700/30 rounded-lg p-2 flex items-center gap-2 text-sm';
+        historyItem.innerHTML = `
+          <span class="text-emerald-400 font-semibold">Y${item.year}:</span>
+          <span>${item.icon}</span>
+          <span class="text-slate-300">${item.name}</span>
+        `;
+        historyList.appendChild(historyItem);
+      });
+      
+      // Apply current expanded state
+      if (!historyExpanded) {
+        historyList.style.display = 'none';
+        document.getElementById('history-arrow').textContent = '▶';
+      } else {
+        historyList.style.display = 'grid';
+        document.getElementById('history-arrow').textContent = '▼';
+      }
+    }
+
+    function formatCurrency(value) {
+      const millions = value / 1000000;
+      return `S$${millions.toFixed(2)}M`;
+    }
+
+    function formatCarbon(value) {
+      return `${value.toLocaleString()} tonnes`;
+    }
+
+    function formatElectricity(value) {
+      const millions = value / 1000000;
+      return `${millions.toFixed(2)}M kWh`;
+    }
+
+    function calculatePercentageChange(initial, current) {
+      const change = ((current - initial) / initial) * 100;
+      return change;
+    }
+
+    function createDecisionCard(decision, category) {
+      const card = document.createElement('div');
+      const isUsed = usedDecisions.has(decision.id);
+      card.className = `decision-card bg-slate-700/50 rounded-xl p-4 border-2 border-transparent cursor-pointer ${isUsed ? 'used' : ''}`;
+      card.dataset.id = decision.id;
+      
+      const hasDescription = decision.description && decision.description.length > 0;
+      const descriptionId = `desc-${decision.id}`;
+      
+      card.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">${decision.icon}</span>
+          <span class="font-medium text-slate-200">${decision.name}</span>
+          ${isUsed ? '<span class="ml-auto text-xs text-emerald-400">✓ Used</span>' : ''}
+        </div>
+        ${hasDescription ? `
+          <div id="${descriptionId}" class="description-text hidden">${decision.description}</div>
+          <span class="description-toggle" onclick="event.stopPropagation(); toggleDescription('${descriptionId}', this)">
+            ℹ️ Show details
+          </span>
+        ` : ''}
+      `;
+      
+      if (!isUsed) {
+        card.onclick = () => toggleDecision(decision.id, card);
+      }
+      return card;
+    }
+
+    function toggleDescription(descId, toggleElement) {
+      const descElement = document.getElementById(descId);
+      if (descElement.classList.contains('hidden')) {
+        descElement.classList.remove('hidden');
+        toggleElement.textContent = 'ℹ️ Hide details';
+      } else {
+        descElement.classList.add('hidden');
+        toggleElement.textContent = 'ℹ️ Show details';
+      }
+    }
+
+    function toggleDecision(id, card) {
+      if (selectedDecisions.has(id)) {
+        selectedDecisions.delete(id);
+        card.classList.remove('selected');
+      } else {
+        if (selectedDecisions.size >= 3) {
+          showLimitMessage();
+          return;
+        }
+        selectedDecisions.add(id);
+        card.classList.add('selected');
+      }
+      updateSelectionCount();
+    }
+
+    function showLimitMessage() {
+      const countElement = document.getElementById('selection-count');
+      const originalText = countElement.textContent;
+      countElement.textContent = '⚠️ Maximum 3 initiatives per year';
+      countElement.classList.add('text-amber-400');
+      setTimeout(() => {
+        countElement.textContent = originalText;
+        countElement.classList.remove('text-amber-400');
+      }, 2000);
+    }
+
+    function updateSelectionCount() {
+      document.getElementById('selection-count').textContent = `${selectedDecisions.size} of 3 initiative${selectedDecisions.size !== 1 ? 's' : ''} selected`;
+    }
+
+    function updateMetricsDisplay() {
+      document.getElementById('cost-value').textContent = formatCurrency(metrics.cost);
+      document.getElementById('carbon-value').textContent = formatCarbon(metrics.carbon);
+      document.getElementById('electricity-value').textContent = formatElectricity(metrics.electricity);
+
+      const costChange = calculatePercentageChange(yearStartMetrics.cost, metrics.cost);
+      const carbonChange = calculatePercentageChange(yearStartMetrics.carbon, metrics.carbon);
+      const electricityChange = calculatePercentageChange(yearStartMetrics.electricity, metrics.electricity);
+
+      // Calculate total change from initial metrics
+      const costTotalChange = calculatePercentageChange(initialMetrics.cost, metrics.cost);
+      const carbonTotalChange = calculatePercentageChange(initialMetrics.carbon, metrics.carbon);
+      const electricityTotalChange = calculatePercentageChange(initialMetrics.electricity, metrics.electricity);
+
+      // Update year-over-year change
+      document.getElementById('cost-change').textContent = costChange === 0 ? 'No change' : 
+        `${costChange > 0 ? '↑' : '↓'} ${Math.abs(costChange).toFixed(2)}%`;
+      document.getElementById('carbon-change').textContent = carbonChange === 0 ? 'No change' : 
+        `${carbonChange > 0 ? '↑' : '↓'} ${Math.abs(carbonChange).toFixed(2)}%`;
+      document.getElementById('electricity-change').textContent = electricityChange === 0 ? 'No change' : 
+        `${electricityChange > 0 ? '↑' : '↓'} ${Math.abs(electricityChange).toFixed(2)}%`;
+
+      // Update total change badges
+      const costTotalElement = document.getElementById('cost-total-change');
+      const carbonTotalElement = document.getElementById('carbon-total-change');
+      const electricityTotalElement = document.getElementById('electricity-total-change');
+
+      costTotalElement.textContent = `${costTotalChange > 0 ? '↑' : costTotalChange < 0 ? '↓' : ''} ${Math.abs(costTotalChange).toFixed(1)}%`;
+      carbonTotalElement.textContent = `${carbonTotalChange > 0 ? '↑' : carbonTotalChange < 0 ? '↓' : ''} ${Math.abs(carbonTotalChange).toFixed(1)}%`;
+      electricityTotalElement.textContent = `${electricityTotalChange > 0 ? '↑' : electricityTotalChange < 0 ? '↓' : ''} ${Math.abs(electricityTotalChange).toFixed(1)}%`;
+
+      // Color coding for year-over-year changes
+      document.getElementById('cost-change').className = `text-xs mt-1 ${costChange > 0 ? 'text-rose-400' : costChange < 0 ? 'text-emerald-400' : 'text-slate-500'}`;
+      document.getElementById('carbon-change').className = `text-xs mt-1 ${carbonChange > 0 ? 'text-rose-400' : carbonChange < 0 ? 'text-emerald-400' : 'text-slate-500'}`;
+      document.getElementById('electricity-change').className = `text-xs mt-1 ${electricityChange > 0 ? 'text-rose-400' : electricityChange < 0 ? 'text-emerald-400' : 'text-slate-500'}`;
+
+      // Color coding for total change badges
+      if (costTotalChange > 0) {
+        costTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-rose-500/20 text-rose-400';
+      } else if (costTotalChange < 0) {
+        costTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400';
+      } else {
+        costTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400';
+      }
+
+      if (carbonTotalChange > 0) {
+        carbonTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-rose-500/20 text-rose-400';
+      } else if (carbonTotalChange < 0) {
+        carbonTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400';
+      } else {
+        carbonTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400';
+      }
+
+      if (electricityTotalChange > 0) {
+        electricityTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-rose-500/20 text-rose-400';
+      } else if (electricityTotalChange < 0) {
+        electricityTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400';
+      } else {
+        electricityTotalElement.className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400';
+      }
+    }
+
+    function getAvailableDecisions() {
+      const year1Decisions = allDecisions.year1;
+      const year2Decisions = allDecisions.year2;
+      const year3Decisions = allDecisions.year3;
+      const year4Decisions = allDecisions.year4;
+      const year5Decisions = allDecisions.year5;
+      const year6Decisions = allDecisions.year6;
+      
+      if (currentYear === 1) {
+        return year1Decisions;
+      } else if (currentYear === 2) {
+        // Year 2: combine unused year 1 decisions with year 2 decisions
+        const combined = {
+          leadership: [],
+          clinical: [],
+          operations: [],
+          supply: []
+        };
+        
+        // Add unused year 1 decisions
+        Object.keys(year1Decisions).forEach(category => {
+          year1Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add year 2 decisions
+        Object.keys(year2Decisions).forEach(category => {
+          combined[category].push(...year2Decisions[category]);
+        });
+        
+        return combined;
+      } else if (currentYear === 3) {
+        // Year 3: combine all unused decisions with year 3 decisions
+        const combined = {
+          leadership: [],
+          clinical: [],
+          operations: [],
+          supply: []
+        };
+        
+        // Add unused year 1 decisions
+        Object.keys(year1Decisions).forEach(category => {
+          year1Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 2 decisions
+        Object.keys(year2Decisions).forEach(category => {
+          year2Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add year 3 decisions
+        Object.keys(year3Decisions).forEach(category => {
+          combined[category].push(...year3Decisions[category]);
+        });
+        
+        return combined;
+      } else if (currentYear === 4) {
+        // Year 4: combine all unused decisions with year 4 decisions
+        const combined = {
+          leadership: [],
+          clinical: [],
+          operations: [],
+          supply: []
+        };
+        
+        // Add unused year 1 decisions
+        Object.keys(year1Decisions).forEach(category => {
+          year1Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 2 decisions
+        Object.keys(year2Decisions).forEach(category => {
+          year2Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 3 decisions
+        Object.keys(year3Decisions).forEach(category => {
+          year3Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add year 4 decisions
+        Object.keys(year4Decisions).forEach(category => {
+          combined[category].push(...year4Decisions[category]);
+        });
+        
+        return combined;
+      } else if (currentYear === 5) {
+        // Year 5: combine all unused decisions with year 5 decisions
+        const combined = {
+          leadership: [],
+          clinical: [],
+          operations: [],
+          supply: []
+        };
+        
+        // Add unused year 1 decisions
+        Object.keys(year1Decisions).forEach(category => {
+          year1Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 2 decisions
+        Object.keys(year2Decisions).forEach(category => {
+          year2Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 3 decisions
+        Object.keys(year3Decisions).forEach(category => {
+          year3Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 4 decisions
+        Object.keys(year4Decisions).forEach(category => {
+          year4Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add year 5 decisions
+        Object.keys(year5Decisions).forEach(category => {
+          combined[category].push(...year5Decisions[category]);
+        });
+        
+        return combined;
+      } else if (currentYear === 6) {
+        // Year 6: combine all unused decisions with year 6 decisions
+        const combined = {
+          leadership: [],
+          clinical: [],
+          operations: [],
+          supply: []
+        };
+        
+        // Add unused year 1 decisions
+        Object.keys(year1Decisions).forEach(category => {
+          year1Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 2 decisions
+        Object.keys(year2Decisions).forEach(category => {
+          year2Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 3 decisions
+        Object.keys(year3Decisions).forEach(category => {
+          year3Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 4 decisions
+        Object.keys(year4Decisions).forEach(category => {
+          year4Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add unused year 5 decisions
+        Object.keys(year5Decisions).forEach(category => {
+          year5Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add year 6 decisions
+        Object.keys(year6Decisions).forEach(category => {
+          combined[category].push(...year6Decisions[category]);
+        });
+        
+        return combined;
+      } else {
+        // Year 7: combine all unused decisions with year 7 decisions
+        const year7Decisions = allDecisions.year7;
+        const combined = {
+          leadership: [],
+          clinical: [],
+          operations: [],
+          supply: []
+        };
+        
+        // Add all unused decisions from previous years
+        Object.keys(year1Decisions).forEach(category => {
+          year1Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        Object.keys(year2Decisions).forEach(category => {
+          year2Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        Object.keys(year3Decisions).forEach(category => {
+          year3Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        Object.keys(year4Decisions).forEach(category => {
+          year4Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        Object.keys(year5Decisions).forEach(category => {
+          year5Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        Object.keys(year6Decisions).forEach(category => {
+          year6Decisions[category].forEach(decision => {
+            if (!usedDecisions.has(decision.id)) {
+              combined[category].push(decision);
+            }
+          });
+        });
+        
+        // Add year 7 decisions
+        Object.keys(year7Decisions).forEach(category => {
+          combined[category].push(...year7Decisions[category]);
+        });
+        
+        return combined;
+      }
+    }
+
+    function getAllDecisions() {
+      const all = [];
+      Object.values(allDecisions.year1).forEach(cat => all.push(...cat));
+      Object.values(allDecisions.year2).forEach(cat => all.push(...cat));
+      Object.values(allDecisions.year3).forEach(cat => all.push(...cat));
+      Object.values(allDecisions.year4).forEach(cat => all.push(...cat));
+      Object.values(allDecisions.year5).forEach(cat => all.push(...cat));
+      Object.values(allDecisions.year6).forEach(cat => all.push(...cat));
+      Object.values(allDecisions.year7).forEach(cat => all.push(...cat));
+      return all;
+    }
+
+    function getDecisionById(id) {
+      return getAllDecisions().find(d => d.id === id);
+    }
+
+    function confirmDecisions() {
+      if (selectedDecisions.size === 0) {
+        const btn = document.getElementById('confirm-btn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Please select at least one initiative!';
+        btn.classList.add('bg-rose-500');
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('bg-rose-500');
+        }, 2000);
+        return;
+      }
+
+      // Apply effects and track history
+      selectedDecisions.forEach(id => {
+        const decision = getDecisionById(id);
+        if (decision) {
+          metrics.cost += decision.effects.cost;
+          
+          // Special case: Sustainable Waste Treatment emissions depend on hazardous waste segregation
+          if (id === 'sustainable_waste') {
+            if (usedDecisions.has('hazardous_waste')) {
+              metrics.carbon += -320; // Greater reduction if hazardous waste segregation was chosen
+            } else {
+              metrics.carbon += -240; // Base reduction
+            }
+          } else {
+            metrics.carbon += decision.effects.carbon;
+          }
+          
+          metrics.electricity += decision.effects.electricity;
+          
+          // Apply patient satisfaction effects
+          if (id === 'public_commitment') {
+            metrics.patientSatisfaction += 4;
+          } else if (id === 'reduce_inpatient_stays') {
+            metrics.patientSatisfaction += 6;
+          } else if (id === 'reduce_diagnostic_tests') {
+            metrics.patientSatisfaction += 5;
+          } else if (id === 'green_spaces') {
+            metrics.patientSatisfaction += 3;
+          } else if (id === 'low_emissions_food') {
+            metrics.patientSatisfaction -= 2;
+          }
+          
+          usedDecisions.add(id);
+          
+          // Add to history
+          initiativeHistory.push({
+            year: currentYear,
+            name: decision.name,
+            icon: decision.icon
+          });
+          
+          // Track when medical devices was chosen
+          if (id === 'medical_devices') {
+            medicalDevicesYearChosen = currentYear;
+          }
+        }
+      });
+
+      // Apply ongoing medical devices savings if it was chosen in a previous year
+      if (medicalDevicesYearChosen !== null && medicalDevicesYearChosen < currentYear) {
+        metrics.cost -= 47000;
+      }
+
+      metricsHistory.push({ ...metrics });
+      updateMetricsDisplay();
+      showResults();
+    }
+
+    function showResults() {
+      document.getElementById('decision-phase').classList.add('hidden');
+      
+      // Check for power outage event in Year 2 and Year 4
+      if (currentYear === 2 || currentYear === 4) {
+        showPowerOutageEvent();
+      } else if (currentYear === 3) {
+        showEnergyAuditEvent();
+      } else {
+        document.getElementById('results-phase').classList.remove('hidden');
+        displayResults();
+      }
+    }
+
+    function showPowerOutageEvent() {
+      const hasMicrogrid = usedDecisions.has('microgrid');
+      
+      // Apply effects based on microgrid presence
+      if (!hasMicrogrid) {
+        metrics.electricity -= 40000;
+        metrics.carbon += 450;
+        metrics.cost += 12000;
+        metrics.patientSatisfaction -= 10;
+      } else {
+        metrics.cost -= 173000;
+      }
+      metricsHistory[metricsHistory.length - 1] = { ...metrics };
+
+      // Create modal
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6';
+      modal.innerHTML = `
+        <div class="bg-slate-800 rounded-2xl p-8 max-w-2xl border-2 ${hasMicrogrid ? 'border-emerald-500' : 'border-amber-500'} shadow-2xl">
+          <div class="text-center mb-6">
+            <div class="text-6xl mb-4">${hasMicrogrid ? '🔋' : '⚡'}</div>
+            <h2 class="text-3xl font-bold ${hasMicrogrid ? 'text-emerald-400' : 'text-amber-400'} mb-2">Power Outage</h2>
+          </div>
+          <div class="text-slate-200 space-y-4 mb-6 leading-relaxed">
+            ${hasMicrogrid 
+              ? '<p>Electricity consumption from the grid was affected this year due to a power outage. <strong class="text-emerald-400">The backup microgrid has helped the hospital recover from the outage and has managed to keep the hospital running as usual.</strong></p><p class="text-emerald-400 font-semibold">✓ -S$173,000 in operating costs (savings from microgrid)</p>'
+              : '<p>Electricity consumption from the grid was affected this year due to a power outage. <strong class="text-amber-400">Petrol consumption has increased to generate electricity during the power outage.</strong> Employee engagement, patient satisfaction, hospital rating and finished admissions episodes (FAE) have suffered due to the interruption in the hospital\'s operations during the period of the outage.</p><p class="text-rose-400 font-semibold">⚠️ -40,000 kWh electricity usage, +450 tonnes emissions, +S$12,000 in costs (fine and lost revenue)</p>'
+            }
+          </div>
+          <div class="text-center">
+            <button onclick="closePowerOutageModal()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl font-semibold text-white shadow-lg transition-all">
+              Continue to Results
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+    }
+
+    function closePowerOutageModal() {
+      const modal = document.querySelector('.fixed.inset-0');
+      if (modal) {
+        modal.remove();
+      }
+      document.getElementById('results-phase').classList.remove('hidden');
+      displayResults();
+    }
+
+    function showEnergyAuditEvent() {
+      const currentElectricity = metrics.electricity;
+      const failsAudit = currentElectricity >= 35000000; // 35M kWh or above
+      
+      // Apply penalty if fails audit
+      if (failsAudit) {
+        metrics.cost += 465000;
+        metricsHistory[metricsHistory.length - 1] = { ...metrics };
+      }
+
+      // Create modal
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6';
+      modal.innerHTML = `
+        <div class="bg-slate-800 rounded-2xl p-8 max-w-2xl border-2 ${failsAudit ? 'border-amber-500' : 'border-emerald-500'} shadow-2xl">
+          <div class="text-center mb-6">
+            <div class="text-6xl mb-4">${failsAudit ? '⚠️' : '✅'}</div>
+            <h2 class="text-3xl font-bold ${failsAudit ? 'text-amber-400' : 'text-emerald-400'} mb-2">Energy Audit</h2>
+          </div>
+          <div class="text-slate-200 space-y-4 mb-6 leading-relaxed">
+            ${failsAudit 
+              ? `<p>The local authorities have carried out a surprise energy efficiency audit to see if the hospital complies with energy efficiency regulations, which stipulate that the hospital is not allowed to consume more than 35.00M kWh.</p><p>Your hospital's energy consumption is <strong class="text-amber-400">${formatElectricity(currentElectricity)}</strong> and as a result your hospital is fined <strong class="text-rose-400">S$465,000</strong> for non-compliance.</p>`
+              : `<p>The local authorities have carried out a surprise energy efficiency audit to see if the hospital complies with energy efficiency regulations, which stipulate that the hospital is not allowed to consume more than 35.00M kWh.</p><p>Your hospital's energy consumption is <strong class="text-emerald-400">${formatElectricity(currentElectricity)}</strong>. <strong class="text-emerald-400">Congratulations! Your hospital passes the audit with no penalties.</strong></p>`
+            }
+          </div>
+          <div class="text-center">
+            <button onclick="closeEnergyAuditModal()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl font-semibold text-white shadow-lg transition-all">
+              Continue to Results
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+    }
+
+    function closeEnergyAuditModal() {
+      const modal = document.querySelector('.fixed.inset-0');
+      if (modal) {
+        modal.remove();
+      }
+      document.getElementById('results-phase').classList.remove('hidden');
+      displayResults();
+    }
+
+    function displayResults() {
+      // Check if year 7 is complete - show endgame screen
+      if (currentYear === 7) {
+        showEndgameScreen();
+        return;
+      }
+
+      document.getElementById('results-year').textContent = currentYear;
+
+      // Show/hide next year button and update text
+      const nextYearBtn = document.getElementById('next-year-btn');
+      const nextYearText = document.getElementById('next-year-text');
+      
+      nextYearBtn.style.display = 'inline-block';
+      if (currentYear === 1) {
+        nextYearText.textContent = 'Continue to Year 2 →';
+      } else if (currentYear === 2) {
+        nextYearText.textContent = 'Continue to Year 3 →';
+      } else if (currentYear === 3) {
+        nextYearText.textContent = 'Continue to Year 4 →';
+      } else if (currentYear === 4) {
+        nextYearText.textContent = 'Continue to Year 5 →';
+      } else if (currentYear === 5) {
+        nextYearText.textContent = 'Continue to Year 6 →';
+      } else if (currentYear === 6) {
+        nextYearText.textContent = 'Continue to Year 7 →';
+      }
+
+      // Update metrics display with latest values
+      updateMetricsDisplay();
+
+      // Create charts
+      createCharts();
+
+      // Show selected initiatives
+      const summaryContainer = document.getElementById('selected-summary');
+      summaryContainer.innerHTML = '';
+      selectedDecisions.forEach(id => {
+        const decision = getDecisionById(id);
+        if (decision) {
+          const item = document.createElement('div');
+          item.className = 'bg-slate-700/50 rounded-lg p-3 flex items-center gap-3';
+          item.innerHTML = `<span class="text-xl">${decision.icon}</span><span class="text-slate-200">${decision.name}</span>`;
+          summaryContainer.appendChild(item);
+        }
+      });
+
+      // Show feedback for selected initiatives
+      const feedbackContainer = document.getElementById('feedback-summary');
+      feedbackContainer.innerHTML = '';
+      selectedDecisions.forEach(id => {
+        const decision = getDecisionById(id);
+        if (decision && decision.feedback) {
+          const feedbackItem = document.createElement('div');
+          feedbackItem.className = 'bg-slate-700/30 rounded-lg p-4 border-l-4 border-emerald-400';
+          feedbackItem.innerHTML = `
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">${decision.icon}</span>
+              <div>
+                <h4 class="font-semibold text-emerald-300 mb-1">${decision.name}</h4>
+                <p class="text-slate-300 text-sm leading-relaxed">${decision.feedback}</p>
+              </div>
+            </div>
+          `;
+          feedbackContainer.appendChild(feedbackItem);
+        }
+      });
+    }
+
+    function showEndgameScreen() {
+      // Hide game content and show endgame screen
+      document.getElementById('game-content').classList.add('hidden');
+      document.getElementById('game-header').classList.add('hidden');
+      document.getElementById('metrics-display').classList.add('hidden');
+      document.getElementById('endgame-screen').classList.remove('hidden');
+
+      // Calculate carbon reduction percentage
+      const carbonReduction = ((initialMetrics.carbon - metrics.carbon) / initialMetrics.carbon) * 100;
+      const success = carbonReduction >= 40;
+
+      // Set endgame content based on success/failure
+      const endgameIcon = document.getElementById('endgame-icon');
+      const endgameTitle = document.getElementById('endgame-title');
+      const endgameMessage = document.getElementById('endgame-message');
+
+      if (success) {
+        endgameIcon.textContent = '🎉';
+        endgameTitle.textContent = 'Congratulations!';
+        endgameTitle.className = 'text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent';
+        endgameMessage.textContent = `You have successfully reduced carbon emissions by ${carbonReduction.toFixed(1)}%, bringing us closer to the Net Zero target! Your hospital is now a sustainability champion.`;
+      } else {
+        endgameIcon.textContent = '😔';
+        endgameTitle.textContent = 'Simulation Incomplete';
+        endgameTitle.className = 'text-5xl font-bold mb-4 bg-gradient-to-r from-amber-400 to-rose-400 bg-clip-text text-transparent';
+        endgameMessage.textContent = `Unfortunately, you only reduced carbon emissions by ${carbonReduction.toFixed(1)}%. The target was a 40% reduction. Consider trying different sustainability strategies to reach the goal.`;
+      }
+
+      // Display final metrics
+      document.getElementById('final-cost-value').textContent = formatCurrency(metrics.cost);
+      document.getElementById('final-carbon-value').textContent = formatCarbon(metrics.carbon);
+      document.getElementById('final-electricity-value').textContent = formatElectricity(metrics.electricity);
+      document.getElementById('final-satisfaction-value').textContent = metrics.patientSatisfaction.toFixed(0);
+
+      // Display changes
+      const costChange = calculatePercentageChange(initialMetrics.cost, metrics.cost);
+      const carbonChange = calculatePercentageChange(initialMetrics.carbon, metrics.carbon);
+      const electricityChange = calculatePercentageChange(initialMetrics.electricity, metrics.electricity);
+      const satisfactionChange = metrics.patientSatisfaction - initialMetrics.patientSatisfaction;
+
+      const costChangeElement = document.getElementById('final-cost-change');
+      costChangeElement.textContent = `${costChange > 0 ? '↑' : '↓'} ${Math.abs(costChange).toFixed(1)}% from start`;
+      costChangeElement.className = `text-sm ${costChange > 0 ? 'text-rose-400' : 'text-emerald-400'}`;
+
+      const carbonChangeElement = document.getElementById('final-carbon-change');
+      carbonChangeElement.textContent = `${carbonChange > 0 ? '↑' : '↓'} ${Math.abs(carbonChange).toFixed(1)}% from start`;
+      carbonChangeElement.className = `text-sm ${carbonChange > 0 ? 'text-rose-400' : 'text-emerald-400'}`;
+
+      const electricityChangeElement = document.getElementById('final-electricity-change');
+      electricityChangeElement.textContent = `${electricityChange > 0 ? '↑' : '↓'} ${Math.abs(electricityChange).toFixed(1)}% from start`;
+      electricityChangeElement.className = `text-sm ${electricityChange > 0 ? 'text-rose-400' : 'text-emerald-400'}`;
+
+      const satisfactionChangeElement = document.getElementById('final-satisfaction-change');
+      satisfactionChangeElement.textContent = `${satisfactionChange > 0 ? '↑' : satisfactionChange < 0 ? '↓' : '→'} ${Math.abs(satisfactionChange).toFixed(0)} from start`;
+      satisfactionChangeElement.className = `text-sm ${satisfactionChange > 0 ? 'text-emerald-400' : satisfactionChange < 0 ? 'text-rose-400' : 'text-slate-400'}`;
+    }
+
+    function showFinalResults() {
+      // Hide endgame screen and show final year 7 results
+      document.getElementById('endgame-screen').classList.add('hidden');
+      document.getElementById('game-header').classList.remove('hidden');
+      document.getElementById('metrics-display').classList.remove('hidden');
+      document.getElementById('game-content').classList.remove('hidden');
+      document.getElementById('results-phase').classList.remove('hidden');
+
+      // Set to show Year 7 results
+      document.getElementById('results-year').textContent = '7';
+      
+      // Hide next year button since this is the end
+      document.getElementById('next-year-btn').style.display = 'none';
+
+      // Update metrics display and create charts
+      updateMetricsDisplay();
+      createCharts();
+
+      // Show selected initiatives
+      const summaryContainer = document.getElementById('selected-summary');
+      summaryContainer.innerHTML = '';
+      selectedDecisions.forEach(id => {
+        const decision = getDecisionById(id);
+        if (decision) {
+          const item = document.createElement('div');
+          item.className = 'bg-slate-700/50 rounded-lg p-3 flex items-center gap-3';
+          item.innerHTML = `<span class="text-xl">${decision.icon}</span><span class="text-slate-200">${decision.name}</span>`;
+          summaryContainer.appendChild(item);
+        }
+      });
+
+      // Show feedback for selected initiatives
+      const feedbackContainer = document.getElementById('feedback-summary');
+      feedbackContainer.innerHTML = '';
+      selectedDecisions.forEach(id => {
+        const decision = getDecisionById(id);
+        if (decision && decision.feedback) {
+          const feedbackItem = document.createElement('div');
+          feedbackItem.className = 'bg-slate-700/30 rounded-lg p-4 border-l-4 border-emerald-400';
+          feedbackItem.innerHTML = `
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">${decision.icon}</span>
+              <div>
+                <h4 class="font-semibold text-emerald-300 mb-1">${decision.name}</h4>
+                <p class="text-slate-300 text-sm leading-relaxed">${decision.feedback}</p>
+              </div>
+            </div>
+          `;
+          feedbackContainer.appendChild(feedbackItem);
+        }
+      });
+    }
+
+    function createCharts() {
+      // Destroy existing charts
+      Object.values(charts).forEach(chart => chart.destroy());
+      charts = {};
+
+      const labels = currentYear === 1 
+        ? ['Start', 'Year 1'] 
+        : currentYear === 2 
+          ? ['Start', 'Year 1', 'Year 2']
+          : currentYear === 3
+            ? ['Start', 'Year 1', 'Year 2', 'Year 3']
+            : currentYear === 4
+              ? ['Start', 'Year 1', 'Year 2', 'Year 3', 'Year 4']
+              : currentYear === 5
+                ? ['Start', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5']
+                : currentYear === 6
+                  ? ['Start', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6']
+                  : ['Start', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7'];
+      
+      const costData = currentYear === 1 
+        ? [initialMetrics.cost / 1000000, metrics.cost / 1000000]
+        : currentYear === 2
+          ? [initialMetrics.cost / 1000000, metricsHistory[1].cost / 1000000, metrics.cost / 1000000]
+          : currentYear === 3
+            ? [initialMetrics.cost / 1000000, metricsHistory[1].cost / 1000000, metricsHistory[2].cost / 1000000, metrics.cost / 1000000]
+            : currentYear === 4
+              ? [initialMetrics.cost / 1000000, metricsHistory[1].cost / 1000000, metricsHistory[2].cost / 1000000, metricsHistory[3].cost / 1000000, metrics.cost / 1000000]
+              : currentYear === 5
+                ? [initialMetrics.cost / 1000000, metricsHistory[1].cost / 1000000, metricsHistory[2].cost / 1000000, metricsHistory[3].cost / 1000000, metricsHistory[4].cost / 1000000, metrics.cost / 1000000]
+                : currentYear === 6
+                  ? [initialMetrics.cost / 1000000, metricsHistory[1].cost / 1000000, metricsHistory[2].cost / 1000000, metricsHistory[3].cost / 1000000, metricsHistory[4].cost / 1000000, metricsHistory[5].cost / 1000000, metrics.cost / 1000000]
+                  : [initialMetrics.cost / 1000000, metricsHistory[1].cost / 1000000, metricsHistory[2].cost / 1000000, metricsHistory[3].cost / 1000000, metricsHistory[4].cost / 1000000, metricsHistory[5].cost / 1000000, metricsHistory[6].cost / 1000000, metrics.cost / 1000000];
+      
+      const carbonData = currentYear === 1
+        ? [initialMetrics.carbon, metrics.carbon]
+        : currentYear === 2
+          ? [initialMetrics.carbon, metricsHistory[1].carbon, metrics.carbon]
+          : currentYear === 3
+            ? [initialMetrics.carbon, metricsHistory[1].carbon, metricsHistory[2].carbon, metrics.carbon]
+            : currentYear === 4
+              ? [initialMetrics.carbon, metricsHistory[1].carbon, metricsHistory[2].carbon, metricsHistory[3].carbon, metrics.carbon]
+              : currentYear === 5
+                ? [initialMetrics.carbon, metricsHistory[1].carbon, metricsHistory[2].carbon, metricsHistory[3].carbon, metricsHistory[4].carbon, metrics.carbon]
+                : currentYear === 6
+                  ? [initialMetrics.carbon, metricsHistory[1].carbon, metricsHistory[2].carbon, metricsHistory[3].carbon, metricsHistory[4].carbon, metricsHistory[5].carbon, metrics.carbon]
+                  : [initialMetrics.carbon, metricsHistory[1].carbon, metricsHistory[2].carbon, metricsHistory[3].carbon, metricsHistory[4].carbon, metricsHistory[5].carbon, metricsHistory[6].carbon, metrics.carbon];
+      
+      const electricityData = currentYear === 1
+        ? [initialMetrics.electricity / 1000000, metrics.electricity / 1000000]
+        : currentYear === 2
+          ? [initialMetrics.electricity / 1000000, metricsHistory[1].electricity / 1000000, metrics.electricity / 1000000]
+          : currentYear === 3
+            ? [initialMetrics.electricity / 1000000, metricsHistory[1].electricity / 1000000, metricsHistory[2].electricity / 1000000, metrics.electricity / 1000000]
+            : currentYear === 4
+              ? [initialMetrics.electricity / 1000000, metricsHistory[1].electricity / 1000000, metricsHistory[2].electricity / 1000000, metricsHistory[3].electricity / 1000000, metrics.electricity / 1000000]
+              : currentYear === 5
+                ? [initialMetrics.electricity / 1000000, metricsHistory[1].electricity / 1000000, metricsHistory[2].electricity / 1000000, metricsHistory[3].electricity / 1000000, metricsHistory[4].electricity / 1000000, metrics.electricity / 1000000]
+                : currentYear === 6
+                  ? [initialMetrics.electricity / 1000000, metricsHistory[1].electricity / 1000000, metricsHistory[2].electricity / 1000000, metricsHistory[3].electricity / 1000000, metricsHistory[4].electricity / 1000000, metricsHistory[5].electricity / 1000000, metrics.electricity / 1000000]
+                  : [initialMetrics.electricity / 1000000, metricsHistory[1].electricity / 1000000, metricsHistory[2].electricity / 1000000, metricsHistory[3].electricity / 1000000, metricsHistory[4].electricity / 1000000, metricsHistory[5].electricity / 1000000, metricsHistory[6].electricity / 1000000, metrics.electricity / 1000000];
+
+      const satisfactionData = currentYear === 1
+        ? [initialMetrics.patientSatisfaction, metrics.patientSatisfaction]
+        : currentYear === 2
+          ? [initialMetrics.patientSatisfaction, metricsHistory[1].patientSatisfaction, metrics.patientSatisfaction]
+          : currentYear === 3
+            ? [initialMetrics.patientSatisfaction, metricsHistory[1].patientSatisfaction, metricsHistory[2].patientSatisfaction, metrics.patientSatisfaction]
+            : currentYear === 4
+              ? [initialMetrics.patientSatisfaction, metricsHistory[1].patientSatisfaction, metricsHistory[2].patientSatisfaction, metricsHistory[3].patientSatisfaction, metrics.patientSatisfaction]
+              : currentYear === 5
+                ? [initialMetrics.patientSatisfaction, metricsHistory[1].patientSatisfaction, metricsHistory[2].patientSatisfaction, metricsHistory[3].patientSatisfaction, metricsHistory[4].patientSatisfaction, metrics.patientSatisfaction]
+                : currentYear === 6
+                  ? [initialMetrics.patientSatisfaction, metricsHistory[1].patientSatisfaction, metricsHistory[2].patientSatisfaction, metricsHistory[3].patientSatisfaction, metricsHistory[4].patientSatisfaction, metricsHistory[5].patientSatisfaction, metrics.patientSatisfaction]
+                  : [initialMetrics.patientSatisfaction, metricsHistory[1].patientSatisfaction, metricsHistory[2].patientSatisfaction, metricsHistory[3].patientSatisfaction, metricsHistory[4].patientSatisfaction, metricsHistory[5].patientSatisfaction, metricsHistory[6].patientSatisfaction, metrics.patientSatisfaction];
+
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y;
+                if (context.dataIndex === 0) {
+                  return `${value.toFixed(2)}`;
+                }
+                const prevValue = context.dataset.data[context.dataIndex - 1];
+                const change = ((value - prevValue) / prevValue * 100).toFixed(1);
+                const arrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+                return `${value.toFixed(2)} (${arrow} ${Math.abs(change)}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.1)' },
+            ticks: { color: 'rgba(255,255,255,0.7)' }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.1)' },
+            ticks: { color: 'rgba(255,255,255,0.7)' }
+          }
+        }
+      };
+
+      // Cost Chart
+      const costCtx = document.getElementById('cost-chart').getContext('2d');
+      charts.cost = new Chart(costCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: costData,
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 6,
+            pointBackgroundColor: '#f59e0b'
+          }]
+        },
+        options: chartOptions
+      });
+
+      // Carbon Chart
+      const carbonCtx = document.getElementById('carbon-chart').getContext('2d');
+      charts.carbon = new Chart(carbonCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: carbonData,
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 6,
+            pointBackgroundColor: '#f43f5e'
+          }]
+        },
+        options: chartOptions
+      });
+
+      // Electricity Chart
+      const electricityCtx = document.getElementById('electricity-chart').getContext('2d');
+      charts.electricity = new Chart(electricityCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: electricityData,
+            borderColor: '#0ea5e9',
+            backgroundColor: 'rgba(14, 165, 233, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 6,
+            pointBackgroundColor: '#0ea5e9'
+          }]
+        },
+        options: chartOptions
+      });
+
+      // Patient Satisfaction Chart
+      const satisfactionCtx = document.getElementById('satisfaction-chart').getContext('2d');
+      charts.satisfaction = new Chart(satisfactionCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: satisfactionData,
+            borderColor: '#a855f7',
+            backgroundColor: 'rgba(168, 85, 247, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 6,
+            pointBackgroundColor: '#a855f7'
+          }]
+        },
+        options: chartOptions
+      });
+    }
+
+    function nextYear() {
+      currentYear++;
+      yearStartMetrics = { ...metrics };
+      selectedDecisions.clear();
+
+      // Update UI
+      document.getElementById('year-display').textContent = `Year ${currentYear}`;
+      document.getElementById('decision-phase').classList.remove('hidden');
+      document.getElementById('results-phase').classList.add('hidden');
+
+      // Repopulate decision cards with unused decisions + new year decisions
+      populateDecisions();
+      updateHistoryDisplay(); // Show history of previous choices
+      updateSelectionCount();
+    }
+
+    function resetGame() {
+      currentYear = 1;
+      metrics = { ...initialMetrics };
+      yearStartMetrics = { ...initialMetrics };
+      selectedDecisions.clear();
+      usedDecisions.clear();
+      metricsHistory = [{ ...initialMetrics }];
+      medicalDevicesYearChosen = null;
+      initiativeHistory = []; // Clear history
+      historyExpanded = true; // Reset history panel state
+      
+      // Destroy charts
+      Object.values(charts).forEach(chart => chart.destroy());
+      charts = {};
+
+      // Reset UI - hide endgame screen and show game
+      document.getElementById('endgame-screen').classList.add('hidden');
+      document.getElementById('game-header').classList.remove('hidden');
+      document.getElementById('metrics-display').classList.remove('hidden');
+      document.getElementById('game-content').classList.remove('hidden');
+      document.getElementById('year-display').textContent = 'Year 1';
+      document.getElementById('decision-phase').classList.remove('hidden');
+      document.getElementById('results-phase').classList.add('hidden');
+
+      populateDecisions();
+      updateHistoryDisplay(); // Hide history display
+      updateMetricsDisplay();
+      updateSelectionCount();
+
+      // Reset change indicators
+      document.getElementById('cost-change').textContent = 'Starting value';
+      document.getElementById('cost-change').className = 'text-xs text-slate-500 mt-1';
+      document.getElementById('carbon-change').textContent = 'Starting value';
+      document.getElementById('carbon-change').className = 'text-xs text-slate-500 mt-1';
+      document.getElementById('electricity-change').textContent = 'Starting value';
+      document.getElementById('electricity-change').className = 'text-xs text-slate-500 mt-1';
+      
+      // Reset total badges
+      document.getElementById('cost-total-change').textContent = '0%';
+      document.getElementById('cost-total-change').className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400';
+      document.getElementById('carbon-total-change').textContent = '0%';
+      document.getElementById('carbon-total-change').className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400';
+      document.getElementById('electricity-total-change').textContent = '0%';
+      document.getElementById('electricity-total-change').className = 'text-xs font-semibold px-2 py-1 rounded-lg bg-slate-700/50 text-slate-400';
+    }
+
+    function populateDecisions() {
+      const decisions = getAvailableDecisions();
+
+      const leadershipContainer = document.getElementById('leadership-decisions');
+      leadershipContainer.innerHTML = '';
+      decisions.leadership.forEach(d => leadershipContainer.appendChild(createDecisionCard(d, 'leadership')));
+
+      const clinicalContainer = document.getElementById('clinical-decisions');
+      clinicalContainer.innerHTML = '';
+      decisions.clinical.forEach(d => clinicalContainer.appendChild(createDecisionCard(d, 'clinical')));
+
+      const operationsContainer = document.getElementById('operations-decisions');
+      operationsContainer.innerHTML = '';
+      decisions.operations.forEach(d => operationsContainer.appendChild(createDecisionCard(d, 'operations')));
+
+      const supplyContainer = document.getElementById('supply-decisions');
+      supplyContainer.innerHTML = '';
+      decisions.supply.forEach(d => supplyContainer.appendChild(createDecisionCard(d, 'supply')));
+    }
+
+    // Initialize the game
+    function initGame() {
+      populateDecisions();
+      updateMetricsDisplay();
+      applyConfig();
+    }
+
+    initGame();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9be4080ce1c7f910',t:'MTc2ODQ2NjA0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
